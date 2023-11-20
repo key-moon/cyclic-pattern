@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name="cyclic-pattern",
-    packages=["pattern"],
-    version="0.0.1",
+    packages=["cyclicpattern"],
+    version="0.0.2",
     
     license="MIT",
 
@@ -16,7 +16,7 @@ setup(
     description="CLI Tools / Python library to generate and search pattern strings useful for finding offsets in Binary Exploitation.",
     entry_points={
         "console_scripts": [
-            "pattern = pattern.cli:main",
+            "pattern = cyclicpattern.cli:main",
         ]
     }
 )

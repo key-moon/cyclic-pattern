@@ -1,8 +1,8 @@
 from tqdm import tqdm
-import pattern as pattern
+import cyclicpattern as cyclicpattern
 
 TEST_LEN = 1000000
-pat = pattern.generate(TEST_LEN)
+pat = cyclicpattern.generate(TEST_LEN)
 
 for i in tqdm(range(len(pat) - 4)):
-  s = pattern.search(pat[i:i+pattern.DEFAULT_BLOCK_SIZE])
+  s = cyclicpattern.search(pat[i:i+cyclicpattern.DEFAULT_BLOCK_SIZE])

@@ -1,9 +1,8 @@
 import string
-from typing import List
 from argparse import Namespace
 from ast import literal_eval
 
-from pattern import Pattern
+from cyclicpattern import Pattern
 
 def _parse_num(s: str) -> int:
     s = s.strip()
