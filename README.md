@@ -2,6 +2,8 @@
 
 CLI Tools / Python library to generate and search pattern strings useful for finding offsets in Binary Exploitation.
 
+![usage](img/img.png)
+
 ## installation
 ```sh
 pip install cyclic-pattern
