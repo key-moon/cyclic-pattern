@@ -1,24 +1,27 @@
-#!/usr/bin/python
-
+import math
 import string
-from ast import literal_eval
 
 DEFAULT_ALPHABET = string.ascii_lowercase + string.ascii_uppercase
-DEFAULT_NUMBER = string.digits
+DEFAULT_DIGIT = string.digits
 DEFAULT_BLOCK_SIZE = 4
 
+MAX_MAX_LENGTH = int(1e12) # 1TB
+
 class Pattern:
-    def __init__(self, alphabet: str, number: str, block_size: int) -> None:
+    def __init__(self, alphabet: str, digit: str, block_size: int) -> None:
         self.alphabet = alphabet
-        self.number = number
+        self.digit = digit
         self.block_size = block_size
 
         self._pattern_cache = ""
         # alphabet: abc ... xyz
-        #   number: 012 ... 789
+        #    digit: 012 ... 789
         #    chunk: aaa0aaa1 ... aaa9bbb0 ... zzz8zzz9
-        self._chunk_size = len(self.alphabet) * len(self.number) * self.block_size
-        self._max_chunk_count = pow(len(self.alphabet), self.block_size - 2)
+        self._chunk_size = len(self.alphabet) * len(self.digit) * self.block_size
+        if math.log(MAX_MAX_LENGTH, len(self.alphabet)) <= self.block_size - 2:
+            self._max_chunk_count = MAX_MAX_LENGTH
+        else:
+            self._max_chunk_count = pow(len(self.alphabet), self.block_size - 2)
         self._max_length = self._chunk_size * self._max_chunk_count
 
     def _generate_chunk(self, chunk_id):
@@ -34,7 +37,7 @@ class Pattern:
         res = ""
         for i in range(len(self.alphabet)):
             block_prefix = "".join([self.alphabet[(i + offset) % len(self.alphabet)] for offset in offsets])
-            res += "".join([block_prefix + c for c in self.number])
+            res += "".join([block_prefix + c for c in self.digit])
         assert len(res) == self._chunk_size
         return res
 
@@ -57,26 +60,26 @@ class Pattern:
         return res
 
     def _search(self, needle: str):
-        number_ind = -1
+        digit_ind = -1
         for ind, c in enumerate(needle):
-            if c in self.number:
-                number_ind = ind
+            if c in self.digit:
+                digit_ind = ind
                 break
-        if number_ind == -1:
-            raise ValueError(f"Invalid format (number not found)", needle)
+        if digit_ind == -1:
+            raise ValueError(f"Invalid format (digit not found)", needle)
         
-        num = self.number.index(needle[number_ind])
-        prefix, suffix = needle[:number_ind], needle[(number_ind + 1):]
+        num = self.digit.index(needle[digit_ind])
+        prefix, suffix = needle[:digit_ind], needle[(digit_ind + 1):]
 
-        def _calc_index(alphabet_part: int, alphabet_ind: int, number: int, offset: int):
-            return (((alphabet_part * len(self.alphabet)) + alphabet_ind) * len(self.number) + number) * self.block_size + offset
+        def _calc_index(alphabet_part: int, alphabet_ind: int, digit: int, offset: int):
+            return (((alphabet_part * len(self.alphabet)) + alphabet_ind) * len(self.digit) + digit) * self.block_size + offset
 
         # not across block (aaa0)
         if len(suffix) == 0:
             return _calc_index(self._parse_alphabet_part(prefix, prefix[0]), self.alphabet.index(prefix[0]), num, 0)
 
         # not across different alphabet block (aa0a)
-        if num != len(self.number) - 1:
+        if num != len(self.digit) - 1:
             return _calc_index(self._parse_alphabet_part(suffix + prefix, suffix[0]), self.alphabet.index(suffix[0]), num, len(suffix))
 
         def _rot_alphabet(s, rot):
@@ -104,58 +107,6 @@ class Pattern:
             raise ValueError(f"Unexpected data ({generated=}) ({needle=})")
         return res
 
-pattern = Pattern(DEFAULT_ALPHABET, DEFAULT_NUMBER, DEFAULT_BLOCK_SIZE)
+pattern = Pattern(DEFAULT_ALPHABET, DEFAULT_DIGIT, DEFAULT_BLOCK_SIZE)
 generate = pattern.generate
 search = pattern.search
-
-def _parse_num(s: str) -> int:
-    s = s.strip()
-    res = literal_eval(s)
-    if type(res) == int: return res
-    raise ValueError("Invalid Value", s)
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-
-
-    # TODO:
-    # parser.add_argument("--alphabet", default=None)
-    # parser.add_argument("--size", default="4")
-
-    subparser = parser.add_subparsers()
-    
-    def cli_generate(args):
-        print(pattern.generate(_parse_num(args.number)))
-
-    def cli_search(args):
-        s = args.pattern
-        def test(s):
-            try:
-                res = pattern.search(s)
-                print(res)
-                exit(0)
-            except Exception as e:
-                return e
-
-        l = []
-        l.append(test(s))
-        # hex
-        _s = s[2:] if s.startswith("0x") else s
-        if all(c in string.hexdigits for c in _s):
-            decoded = bytes.fromhex(_s).decode()
-            if not (args.big): decoded = decoded[::-1]
-            l.append(test(decoded))
-        assert False, ("[!] pattern not found.", l)
-
-    gen_parser = subparser.add_parser("generate", aliases=['g'])
-    gen_parser.add_argument("number")
-    gen_parser.set_defaults(func=cli_generate)
-
-    search_parser = subparser.add_parser("search", aliases=['s'])
-    search_parser.add_argument("pattern")
-    search_parser.add_argument("--big", action="store_true")
-    search_parser.set_defaults(func=cli_search)
-
-    args = parser.parse_args()
-    args.func(args)
